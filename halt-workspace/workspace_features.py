@@ -5,6 +5,10 @@ from concurrent.futures import ThreadPoolExecutor
 from workspace_utils import check_errors, print_header
 from abc import ABC, abstractmethod
 
+# Display all rows and columns, no truncation
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
+pd.set_option('display.width', None)
 
 class DatabricksFeature(ABC):
     def __init__(self, manager):
@@ -15,10 +19,12 @@ class DatabricksFeature(ABC):
         self.headers = manager.headers
         self.rtl_env = manager.rtl_env
         self.session = manager.session
+        self.start_time = manager.start_time
 
     def store(self, state_content, name):
-        os.makedirs(self.rtl_env, exist_ok=True)
-        with open(f"{self.rtl_env}/{name}.json", "w") as f:
+        base_path = f"restore_states/{self.rtl_env}_{self.start_time}"
+        os.makedirs(base_path, exist_ok=True)
+        with open(f"{base_path}/{name}.json", "w") as f:
             json.dump(state_content, f, indent=4)
 
 
@@ -147,32 +153,46 @@ class Workflows(DatabricksFeature):
             print_header("All Workflows")
 
         workflow = self._get()
-        if workflow.get("jobs"):
-            rows = [{
-                "Job ID": workflow["job_id"],
-                "Job Name": workflow["settings"]["name"],
-                "Creator": workflow["creator_user_name"] if "creator_user_name" in workflow else "",
-                "ContinuousStatus": workflow["settings"].get("continuous", {}).get("pause_status", ""),
-                "Schedule": workflow["settings"]["schedule"]["quartz_cron_expression"] if "schedule" in workflow["settings"] else "",
-                "ScheduleEnabled": workflow["settings"]["schedule"]["pause_status"] if "schedule" in workflow["settings"] else False,
-                "Trigger": workflow["settings"]["trigger"]["pause_status"] if "trigger" in workflow["settings"] else "",
-            } for workflow in workflow["jobs"]]
-        
-            df = pd.DataFrame(rows)
-            if kwargs.get("unpaused_only"):
-                unpaused_jobs = df.loc[(df['ScheduleEnabled'] == "UNPAUSED") | 
-                       (df['Trigger'] == "UNPAUSED") | 
-                       (df['ContinuousStatus'] == "UNPAUSED")]
-                if unpaused_jobs.empty:
-                    print("All workflows are paused")
-                    return
-                print(unpaused_jobs.to_string(index=False))
-            else:
-                print(df.to_string(index=False))
+
+        if not workflow.get("jobs"):
+            print("No workflows exist")
+            return
+
+        print(f"{len(workflow['jobs'])} workflows exist")
+
+        rows = [{
+            "Job ID": workflow["job_id"],
+            "Job Name": workflow["settings"]["name"],
+            "Creator": workflow["creator_user_name"] if "creator_user_name" in workflow else "",
+            "ContinuousStatus": workflow["settings"].get("continuous", {}).get("pause_status", ""),
+            "Schedule": workflow["settings"]["schedule"]["quartz_cron_expression"] if "schedule" in workflow["settings"] else "",
+            "ScheduleEnabled": workflow["settings"]["schedule"]["pause_status"] if "schedule" in workflow["settings"] else False,
+            "Trigger": workflow["settings"]["trigger"]["pause_status"] if "trigger" in workflow["settings"] else "",
+        } for workflow in workflow["jobs"]]
+    
+        df = pd.DataFrame(rows)
+        if kwargs.get("unpaused_only"):
+            # Cater for all of the possible unpaused/scheduling statuses
+            unpaused_jobs = df.loc[(df['ScheduleEnabled'] == "UNPAUSED") | 
+                   (df['Trigger'] == "UNPAUSED") | 
+                   (df['ContinuousStatus'] == "UNPAUSED")]
+            if unpaused_jobs.empty:
+                print("All workflows are paused")
+                return
+            print(unpaused_jobs.to_string(index=False))
+        else:
+            print(df.to_string(index=False))
 
     def stop(self):
         print_header("Pausing Workflows")
         workflows = self._get()
+
+        if not workflows.get("jobs"):
+            print("..no workflows to pause")
+            return
+
+        print(f"Pausing {len(workflows['jobs'])} workflows")
+
         self.store(workflows, "workflows")
         for workflow in workflows["jobs"]:
             if workflow["settings"].get("schedule", {}).get("pause_status") == "UNPAUSED":
@@ -198,6 +218,10 @@ class Workflows(DatabricksFeature):
         print_header("Restoring Workflows")
         with open(f"{self.rtl_env}/workflows.json") as f:
             workflows = json.load(f)
+
+        if not workflows.get("jobs"):
+            print("No workflows to restore")
+            return
 
         for workflow in workflows["jobs"]:
             if workflow["settings"].get("schedule", {}).get("pause_status") == "UNPAUSED":

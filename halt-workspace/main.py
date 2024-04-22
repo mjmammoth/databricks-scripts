@@ -7,8 +7,9 @@ import argparse
 import os
 from dotenv import load_dotenv
 from workspace_features import WorkspacePermissions, Workflows, JobRuns, AllPurposeCompute, SQLWarehouses
+import sys
+import datetime
 
-# MSAL
 def get_access_token():
     command = [
         'az', 'account', 'get-access-token',
@@ -36,12 +37,14 @@ class DatabricksWorkspaceManager:
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
         }
+        self.session = self.create_session()
+        self.start_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+
         self.workspace_permissions = WorkspacePermissions(self)
         self.workflows = Workflows(self)
         self.job_runs = JobRuns(self)
         self.all_purpose_compute = AllPurposeCompute(self)
         self.sql_warehouses = SQLWarehouses(self)
-        self.session = self.create_session()
 
     def create_session(self):
         session = requests.Session()
@@ -61,11 +64,11 @@ class DatabricksWorkspaceManager:
         self.sql_warehouses.show(**kwargs)
 
     def halt_environment(self, ignored_principals=None):
-        self.workspace_permissions.delete(ignored_principals)
-        self.workflows.pause()
+        # self.workspace_permissions.delete(ignored_principals)
+        # self.workflows.pause()
         self.all_purpose_compute.stop()
-        self.job_runs.stop()
-        self.sql_warehouses.stop()
+        # self.job_runs.stop()
+        # self.sql_warehouses.stop()
 
     def restore_environment(self):
         self.workspace_permissions.restore()
@@ -83,12 +86,20 @@ if __name__ == "__main__":
     runtime.add_argument("--restore", help="Restore the workspace", action="store_true")
     runtime.add_argument("--show", help="Show all workspace objects", action="store_true")
     parser.add_argument("--env", help="Environment to use", type=str, required=True)
-    parser.add_argument("--active", help="Show only active workflows and job runs", action="store_true")
-    parser.add_argument("--ignored-principals", help="Principal IDs to ignore", type=int, nargs="+")
+    parser.add_argument("-a", "--active-only", help="Show only active workflows and job runs", action="store_true")
+    parser.add_argument("-i", "--ignored-principals", help="Principal IDs to ignore when permissions are deleted", type=int, nargs="+")
     args = parser.parse_args()
 
     with open(".env.json") as f:
-        env = json.load(f)[args.env]
+        try:
+            env = json.load(f)[args.env]
+        except FileNotFoundError:
+            print(".env.json Environment file not found")
+            sys.exit(1)
+        except KeyError:
+            print(f"Environment {args.env} not found in .env.json file")
+            sys.exit(1)
+
     workspace_manager = DatabricksWorkspaceManager(
         account_id=os.getenv("AZ_DATABRICKS_ACCOUNT_ID"),
         workspace_id=env["WORKSPACE_ID"],
@@ -98,7 +109,7 @@ if __name__ == "__main__":
     )
 
     if args.show:
-        workspace_manager.show_environment(unpaused_only=args.active,running_only=args.active,unterminated_only=args.active)
+        workspace_manager.show_environment(unpaused_only=args.active_only,running_only=args.active_only,unterminated_only=args.active_only)
     elif args.stop:
         workspace_manager.halt_environment(ignored_principals=args.ignored_principals)
     elif args.restore:
