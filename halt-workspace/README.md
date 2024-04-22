@@ -1,8 +1,9 @@
-# Databricks Workspace Halt Script
+# :raised_hand: Databricks Workspace Halt Script
 
 :warning: :warning: :warning:
 - Only works on Unity Catalog enabled workspaces
 - Only tested on Azure Databricks Workspaces 
+
 :warning: :warning: :warning:
 
 ## User Requirements
