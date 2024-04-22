@@ -2,7 +2,7 @@
 
 :warning: :warning: :warning:
 - Only works on Unity Catalog enabled workspaces
-- Only tested on Azure Databricks Workspaces 
+- Only tested on Azure Databricks workspaces 
 
 :warning: :warning: :warning:
 
