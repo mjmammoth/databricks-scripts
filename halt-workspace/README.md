@@ -25,7 +25,7 @@ This is required so that:
 
 While it is required to pass in a list of principals using the `--ignored-principals` argument, these principals will only be ignored if they are **directly applied to the workspace permissions through the accounts console**.
 
-i.e. Groups are remove
+i.e. Groups are removed if not explicitly passed in as an ignored principal, a user's principal permissions won't be maintained if they are only a part of a group and not directly permissioned against the workspace.
 
 #### 2. Pausing and stopping all compute `--stop`
 Stops active compute (Job Runs, All-purpose compute, SQL Warehouses) and pauses workflows (time, continuous or file arrival triggered).
