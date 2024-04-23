@@ -81,10 +81,13 @@ python main.py --env exampleenv show
 # Or to only view unpaused workfows and active compute
 python main.py --env exampleenv show --active-only
 ```
-- :no_entry_sign: To halt the environment (Removing all permissions and stopping compute), run the script with the `stop` command and the `--ignored-principals` arguments:
-    TIP: Find your principal id(s) you wish to ignore by using the show command.
+- :no_entry_sign: To halt the environment (Removing all permissions and stopping compute), run the script with the `stop` command and the `--ignored-principals` arguments
+</br>TIP: Find your principal id(s) you wish to ignore by using the `show` command.
+
 ```bash
 python main.py --env exampleenv stop --ignored-principals 1111111111111111
+# Or multiple
+python main.py --env exampleenv stop --ignored-principals 1111111111111111 2222222222222222
 ```
 - :recycle: To restore permissions and unpause workflows:
 ```bash
