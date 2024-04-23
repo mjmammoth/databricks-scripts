@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import subprocess
 import requests
 from requests.adapters import HTTPAdapter
@@ -97,23 +98,26 @@ if __name__ == "__main__":
 
     with open(".env.json") as f:
         try:
-            env = json.load(f)[args.env]
+            workspace_url = json.load(f)[args.env]
+            print(f"Using workspace URL: {workspace_url}")
+            re_match = re.search(r"adb-(\d+)\.", workspace_url)
+            if re_match is None:
+                raise ValueError("Workspace URL is not in the correct format")
+            workspace_id = re_match.group(1)
         except FileNotFoundError:
             print(".env.json Environment file not found")
             sys.exit(1)
-
-    try:
-        workspace_url = env["WORKSPACE_URL"]
-        re_match = re.search(r"adb-(\d+)\.", workspace_url)
-        if re_match is None:
-            raise ValueError("Workspace URL is not in the correct format")
-        workspace_id = re_match.group(1)
-    except KeyError:
-        print(f"Workspace URL not set in .env.json file")
-        sys.exit(1)
-    except ValueError as e:
-        print(e)
-        sys.exit(1)
+        except KeyError:
+            print(f"Environment {args.env} not found in .env.json file")
+            sys.exit(1)
+        except ValueError as e:
+            print(f"Error parsing workspace URL: {e}")
+            print("Please ensure the workspace URL is in the format 'https://adb-<workspace_id>.<integer>.azuredatabricks.net'")
+            sys.exit(1)
+        except TypeError:
+            print("Value for environment in .env.json file is not a URL string")
+            print("Please ensure a URL in the format of 'https://adb-<workspace_id>.<integer>.azuredatabricks.net' is provided")
+            sys.exit(1)
 
     workspace_manager = DatabricksWorkspaceManager(
         account_id=get_env_var("AZ_DATABRICKS_ACCOUNT_ID"),
