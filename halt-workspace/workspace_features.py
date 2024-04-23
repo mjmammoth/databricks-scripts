@@ -4,6 +4,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 from workspace_utils import check_errors, print_header
 from abc import ABC, abstractmethod
+import sys
 
 # Display all rows and columns, no truncation
 pd.set_option('display.max_rows', None)
@@ -20,13 +21,13 @@ class DatabricksFeature(ABC):
         self.rtl_env = manager.rtl_env
         self.session = manager.session
         self.start_time = manager.start_time
+        self.restore_path = manager.restore_path if manager.restore_path else None
 
     def store(self, state_content, name):
         base_path = f"restore_states/{self.rtl_env}_{self.start_time}"
         os.makedirs(base_path, exist_ok=True)
         with open(f"{base_path}/{name}.json", "w") as f:
             json.dump(state_content, f, indent=4)
-
 
     def combine_paginated_results(self, url, aggregate_on, **kwargs):
         params = kwargs.get("params", {})
@@ -60,7 +61,7 @@ class DatabricksFeature(ABC):
         pass
 
     @abstractmethod
-    def restore(self):
+    def restore(self, restore_path: str):
         pass
 
 
@@ -122,9 +123,9 @@ class WorkspacePermissions(DatabricksFeature):
     def delete(self, ignored_principals):
         self.stop(ignored_principals=ignored_principals)
 
-    def restore(self):
+    def restore(self, restore_path: str):
         print_header("Restoring Workspace Permissions")
-        with open(f"{self.rtl_env}/permission_assignments.json") as f:
+        with open(f"{restore_path}/permission_assignments.json") as f:
             permission_assignments = json.load(f)
 
         with ThreadPoolExecutor(max_workers=150) as executor:
@@ -214,10 +215,14 @@ class Workflows(DatabricksFeature):
     def pause(self):
         self.stop()
 
-    def restore(self):
+    def restore(self, restore_path: str):
         print_header("Restoring Workflows")
-        with open(f"{self.rtl_env}/workflows.json") as f:
-            workflows = json.load(f)
+        try:
+            with open(f"{restore_path}/workflows.json") as f:
+                workflows = json.load(f)
+        except FileNotFoundError:
+            print("No workflows to restore")
+            return
 
         if not workflows.get("jobs"):
             print("No workflows to restore")
@@ -293,7 +298,7 @@ class JobRuns(DatabricksFeature):
 
         print(f"Stopped {len(jobs['runs'])} active job runs")
 
-    def restore(self):
+    def restore(self, restore_path: str):
         print('.. not restoring job runs')
 
 
@@ -344,7 +349,7 @@ class AllPurposeCompute(DatabricksFeature):
                 sys.exit()
         print(f"Terminated {len(clusters)} clusters")
 
-    def restore(self):
+    def restore(self, restore_path: str):
         print('.. not restoring all purpose compute')
 
 
@@ -392,5 +397,5 @@ class SQLWarehouses(DatabricksFeature):
 
         print(f"Stopped {len(warehouses['warehouses'])} warehouses")
 
-    def restore(self):
+    def restore(self, restore_path: str):
         print('.. not restoring sql warehouses')
