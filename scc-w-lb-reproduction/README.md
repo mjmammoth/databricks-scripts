@@ -1,5 +1,5 @@
 Reproduction steps to aid Azure support ticket #2503260050001478
-> [!INFO]
+> [!IMPORTANT]
 > Adapted from the terraform example found on [this page](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/databricks_workspace): [Databricks Workspace Secure Connectivity Cluster with Load Balancer](https://github.com/hashicorp/terraform-provider-azurerm/tree/main/examples/databricks/secure-connectivity-cluster/with-load-balancer) to include the migration to NAT gateway, showing the problem being experienced.
 
 ### Pre-requisites
