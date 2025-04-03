@@ -19,6 +19,8 @@ Reproduction steps to aid Azure support ticket #2503260050001478
 git clone git@github.com:mjmammoth/databricks-scripts.git
 # change direcory into scc-w-lb-reproduction
 cd scc-w-lb-reproduction
+# Edit the terraform.tfvars file with a text editor to set the variables
+code terraform.tfvars
 # initialize terraform
 terraform init
 # terraform plan the resources to see what would be created
