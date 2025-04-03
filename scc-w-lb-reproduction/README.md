@@ -42,7 +42,7 @@ To attempt to migrate to using a NAT gateway for cluster egress, set the `use_na
 In this state, when trying to start compute inside databricks, an error will be raised.
 Something to the effect of:
 
-> [!Error]
+> [!Warning]
 > Cluster 'cluster_id' was terminated. Reason: NETWORK_CONFIGURATION_FAILURE (CLIENT_ERROR). Parameters: azure_error_code:AzureLoadBalancerConfigurationFailure, azure_error_message:Encountered error while trying to get Load Balancer Backend Pool: Load Balancer does not exist - /subscriptions/subscription_id/resourceGroups/resource_group/providers/Microsoft.Network/loadBalancers/loadbalancer, databricks_error_message:Azure error: Error code: AzureLoadBalancerConfigurationFailure, error message: Encountered error while trying to get Load Balancer Backend Pool: Load Balancer does not exist ...
 
 Which indicates that
