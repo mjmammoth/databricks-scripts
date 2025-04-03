@@ -7,7 +7,7 @@ Reproduction steps to aid Azure support ticket #2503260050001478
   - Set the target subscription
 
   ```bash
-  az account set --subscriptionz set 
+  az account set --subscription set your_subscription_id
 - Terraform variables to be set by editing [terraform.tfvars](./terraform.tfvars) accordingly
 
 > [!NOTE]
